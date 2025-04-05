@@ -25,6 +25,7 @@ source "tart-cli" "tart" {
 build {
   sources = ["source.tart-cli.tart"]
 
+  // System configuration
   provisioner "file" {
     source      = "data/limit.maxfiles.plist"
     destination = "~/limit.maxfiles.plist"
@@ -41,106 +42,44 @@ build {
     ]
   }
 
-  # Create a symlink for bash compatibility
+  // Install and configure Homebrew
   provisioner "shell" {
-    inline = [
-      "touch ~/.zprofile",
-      "ln -s ~/.zprofile ~/.profile",
-    ]
-  }
-
-  provisioner "shell" {
+    env = {
+      HOME_DIR = "/Users/admin"
+    }
     inline = [
       "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"",
       "echo \"export LANG=en_US.UTF-8\" >> ~/.zprofile",
-      "echo 'eval \"$(/opt/homebrew/bin/brew shellenv)\"' >> ~/.zprofile",
-      "echo \"export HOMEBREW_NO_AUTO_UPDATE=1\" >> ~/.zprofile",
-      "echo \"export HOMEBREW_NO_INSTALL_CLEANUP=1\" >> ~/.zprofile",
+      "echo 'eval \"$(/opt/homebrew/bin/brew shellenv)\"' >> ~/.zprofile"
     ]
   }
 
+  // Configure SSH and GitHub integration
   provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew --version",
-      "brew update",
-      "brew install wget unzip zip ca-certificates cmake gcc git-lfs jq yq gh gitlab-runner",
-      "brew install curl || true", // doesn't work on Monterey
-      "brew install --cask git-credential-manager",
-      "git lfs install",
-      "sudo softwareupdate --install-rosetta --agree-to-license"
-    ]
+    inline = ["mkdir -p ~/.ssh"]
   }
-
-  // Add GitHub to known hosts
-  // Similar to https://github.com/actions/runner-images/blob/main/images/macos/scripts/build/configure-ssh.sh
-  provisioner "shell" {
-    inline = [
-      "mkdir -p ~/.ssh"
-    ]
-  }
+  
   provisioner "file" {
     source      = "data/github_known_hosts"
     destination = "~/.ssh/known_hosts"
   }
 
-  // Install the GitHub Actions runner
+  // Setup for GitHub Actions
   provisioner "shell" {
     script = "scripts/install-actions-runner.sh"
   }
 
-  // Create a /Users/runner → /Users/admin symlink to support certain GitHub Actions
-  // like ruby/setup-ruby that hard-code the "/Users/runner/hostedtoolcache" path[1]
-  //
-  // [1]: https://github.com/ruby/setup-ruby/blob/6bd3d993c602f6b675728ebaecb2b569ff86e99b/common.js#L268
+  // Configure browser automation
   provisioner "shell" {
-    inline = [
-      "sudo ln -s /Users/admin /Users/runner"
-    ]
+    inline = ["sudo safaridriver --enable"]
   }
 
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew install libyaml", # https://github.com/rbenv/ruby-build/discussions/2118
-      "brew install rbenv",
-      "echo 'if which rbenv > /dev/null; then eval \"$(rbenv init -)\"; fi' >> ~/.zprofile",
-      "source ~/.zprofile",
-      "rbenv install 2.7.8", // latest 2.x.x before EOL
-      "rbenv install -l | grep -v - | tail -2 | xargs -L1 rbenv install",
-      "rbenv global $(rbenv install -l | grep -v - | tail -1)",
-      "gem install bundler",
-    ]
-  }
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew install node@20",
-      "echo 'export PATH=\"/opt/homebrew/opt/node@20/bin:$PATH\"' >> ~/.zprofile",
-      "source ~/.zprofile",
-      "node --version",
-      "npm install --global yarn",
-      "yarn --version",
-    ]
-  }
-  provisioner "shell" {
-    inline = [
-      "sudo safaridriver --enable",
-    ]
-  }
-  provisioner "shell" {
-    inline = [
-      "source ~/.zprofile",
-      "brew install awscli"
-    ]
-  }
-
-  # Enable UI automation, see https://github.com/cirruslabs/macos-image-templates/issues/136
   provisioner "shell" {
     script = "scripts/automationmodetool.expect"
+    comment = "Enable UI automation for testing"
   }
 
-  // some other health checks
+  // Verify setup
   provisioner "shell" {
     inline = [
       "source ~/.zprofile",
