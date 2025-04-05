@@ -16,7 +16,7 @@ source "tart-cli" "tart" {
   vm_name      = "${var.macos_version}-base"
   cpu_count    = 4
   memory_gb    = 8
-  disk_size_gb = 50
+  disk_size_gb = 100
   ssh_password = "admin"
   ssh_username = "admin"
   ssh_timeout  = "120s"
