@@ -58,7 +58,7 @@ build {
   provisioner "shell" {
     inline = ["mkdir -p ~/.ssh"]
   }
-  
+
   provisioner "file" {
     source      = "data/github_known_hosts"
     destination = "~/.ssh/known_hosts"
@@ -76,7 +76,6 @@ build {
 
   provisioner "shell" {
     script = "scripts/automationmodetool.expect"
-    comment = "Enable UI automation for testing"
   }
 
   // Verify setup
