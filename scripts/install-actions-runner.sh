@@ -11,7 +11,7 @@
 set -euo pipefail
 
 source ~/.zprofile
-brew install jq
+brew install jq wget
 
 DOWNLOAD_URL=$(curl -sS 'https://api.github.com/repos/actions/runner/releases/latest' | jq --raw-output '.assets[] | select(.name | test("actions-runner-osx-arm64-[0-9.]+.tar.gz")) | .browser_download_url')
 
